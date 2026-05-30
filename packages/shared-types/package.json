@@ -1,0 +1,15 @@
+{
+  "name": "@lumidoc/shared-types",
+  "version": "1.0.0",
+  "description": "OpenAPI-generated TypeScript types shared across packages",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "generate": "openapi-typescript ../docs/api/openapi.yaml -o src/api-types.ts"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "openapi-typescript": "^6.7.0"
+  }
+}

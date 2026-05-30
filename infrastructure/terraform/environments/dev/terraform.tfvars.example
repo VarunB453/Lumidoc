@@ -1,0 +1,4 @@
+project_id   = "your-gcp-project-id"
+region       = "us-central1"
+server_image = "us-central1-docker.pkg.dev/your-gcp-project-id/lumidoc-dev-images/server:latest"
+client_image = "us-central1-docker.pkg.dev/your-gcp-project-id/lumidoc-dev-images/client:latest"

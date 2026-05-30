@@ -1,0 +1,36 @@
+# =============================================================================
+# Celery worker image. Same Python deps as the API.
+# =============================================================================
+FROM python:3.11-slim AS builder
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1
+
+WORKDIR /build
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential gcc g++ libffi-dev libssl-dev libmagic1 \
+    && rm -rf /var/lib/apt/lists/*
+COPY requirements.txt .
+RUN pip install --user --no-cache-dir -r requirements.txt
+
+FROM python:3.11-slim AS runtime
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PATH="/root/.local/bin:${PATH}" \
+    APP_ENV=production
+
+WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ffmpeg libmagic1 curl tini \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /root/.local /root/.local
+COPY app ./app
+
+RUN mkdir -p /app/keys /app/storage /app/storage/faiss
+
+ENTRYPOINT ["/usr/bin/tini", "--"]
+CMD ["celery", "-A", "app.celery_app", "worker", "--loglevel=info", \
+     "-Q", "pdf,audio,video,summary,timestamps,default", "--concurrency=4"]

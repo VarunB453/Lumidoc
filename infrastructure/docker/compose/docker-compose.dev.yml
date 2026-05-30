@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  server:
+    build:
+      context: ../../..
+      dockerfile: infrastructure/docker/server.Dockerfile
+      target: development
+    volumes:
+      - ../../../apps/server:/app
+    environment:
+      - DEBUG=true
+      - RELOAD=true
+    ports:
+      - "8000:8000"
+
+  celery:
+    build:
+      context: ../../..
+      dockerfile: infrastructure/docker/celery.Dockerfile
+    volumes:
+      - ../../../apps/server:/app
+    environment:
+      - DEBUG=true
+
+  postgres:
+    ports:
+      - "5432:5432"
+
+  redis:
+    ports:
+      - "6379:6379"
+
+  mailhog:
+    image: mailhog/mailhog
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    networks:
+      - app-network

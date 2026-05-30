@@ -1,0 +1,64 @@
+# =============================================================================
+# Lumidoc — DEVELOPMENT overrides.
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+#
+# Mounts the backend source into the api/celery containers and runs uvicorn /
+# celery in --reload mode, exposes Mongo + Redis on localhost so the host can
+# connect, and binds the frontend's Vite dev server (5173) instead of the
+# baked SPA. The api container is exposed on 8000 too for direct testing.
+# =============================================================================
+
+services:
+  api:
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    environment:
+      APP_ENV: development
+      DEBUG: "true"
+      LOG_JSON: "false"
+    volumes:
+      - ./app:/app/app:rw
+      - ./scripts:/app/scripts:ro
+      - storage_data:/app/storage
+      - keys_data:/app/keys
+    ports:
+      - "8000:8000"
+
+  celery:
+    # Use watchmedo for auto-reload during development.
+    command: >
+      sh -c "pip install --quiet watchdog &&
+             watchmedo auto-restart --directory=/app/app --pattern='*.py' --recursive --
+             celery -A app.celery_app worker --loglevel=debug
+             -Q pdf,audio,video,summary,timestamps,default --concurrency=2"
+    volumes:
+      - ./app:/app/app:rw
+      - storage_data:/app/storage
+      - keys_data:/app/keys
+
+  mongodb:
+    ports:
+      - "27017:27017"
+
+  redis:
+    ports:
+      - "6379:6379"
+
+  frontend:
+    image: node:20-alpine
+    container_name: lumidoc-frontend-dev
+    working_dir: /app
+    command: sh -c "npm ci && npm run dev -- --host 0.0.0.0"
+    environment:
+      VITE_DEV_PROXY_TARGET: http://api:8000
+      VITE_API_BASE_URL: /api/v1
+    volumes:
+      - ../client:/app
+      - frontend_node_modules:/app/node_modules
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
+
+volumes:
+  frontend_node_modules:
